@@ -5,7 +5,7 @@
   "type": "module",
   "main": "./build/index.js",
   "bin": {
-    "mcp-bulkhead": "./build/index.js"
+    "mcp-bulkhead": "build/index.js"
   },
   "files": [
     "build/",
@@ -31,7 +31,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/CarolinaTech-io/mcp-bulkhead.git"
+    "url": "git+https://github.com/CarolinaTech-io/mcp-bulkhead.git"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
