@@ -1,0 +1,46 @@
+{
+  "name": "mcp-bulkhead",
+  "version": "1.0.0",
+  "description": "MCP server for secure PowerShell command execution on Windows",
+  "type": "module",
+  "main": "./build/index.js",
+  "bin": {
+    "mcp-bulkhead": "./build/index.js"
+  },
+  "files": [
+    "build/",
+    "config.json"
+  ],
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "prepare": "tsc"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "keywords": [
+    "mcp",
+    "model-context-protocol",
+    "powershell",
+    "windows",
+    "claude-desktop"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/CarolinaTech-io/mcp-bulkhead.git"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@rollup/rollup-win32-x64-msvc": "^4.59.0",
+    "execa": "^9.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.7.0",
+    "vitest": "^3.0.0"
+  }
+}

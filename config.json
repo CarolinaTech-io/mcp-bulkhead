@@ -1,0 +1,15 @@
+{
+  "workingDirectory": "C:\\dev",
+  "blacklist": [
+    "Remove-Item", "rm", "rmdir", "del", "rd",
+    "Format-Volume", "format", "Clear-Disk",
+    "Set-Acl", "chmod", "chown", "icacls",
+    "Start-Process", "sudo", "su", "runas",
+    "Stop-Computer", "Restart-Computer", "shutdown", "reboot",
+    "reg", "regedit"
+  ],
+  "timeoutSeconds": 30,
+  "audit": {
+    "enabled": true
+  }
+}
