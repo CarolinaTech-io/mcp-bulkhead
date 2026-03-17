@@ -1,4 +1,4 @@
-# mcp-bulkhead — Product Specification v1.3
+# mcp-bulkhead — Product Specification v1.4
 
 ## 1. Purpose
 
@@ -67,8 +67,8 @@ Returned by the server in response to `tools/list`:
 
 1. Validate `command` is present and is a non-empty string. If not, return a protocol error.
 2. Reject command chaining. If the command contains chain operators (`;`, `&&`, `||`), return a tool error instructing the LLM to send one command per call. Pipes (`|`) are allowed — they are a single logical operation, not separate commands.
-3. Resolve the base command (first token after whitespace split).
-4. Check the resolved command name against the blacklist. Match the bare name, any PowerShell alias it resolves to, and the final segment of any absolute path. If blocked, return a tool error.
+3. Split the command on pipe operators (`|`) into segments.
+4. For each segment, resolve the base command (first token after whitespace split) and check it against the blacklist. Match the bare name, any PowerShell alias it resolves to, and the final segment of any absolute path. If any segment is blocked, return a tool error.
 5. Execute through PowerShell with the configured working directory, timeout, and inherited environment.
 6. Return the result.
 
@@ -104,7 +104,7 @@ Standard JSON-RPC error response per the MCP specification.
 
 ## 5. Configuration
 
-A single JSON file controls all server behavior. The file path is set via the `MCP_BULKHEAD_CONFIG` environment variable. If not set, the server starts with defaults.
+A single JSON file controls all server behavior. The config file is the single source of truth — the server ships with a default config containing recommended settings, and the operator owns the full contents. The file path is set via the `MCP_BULKHEAD_CONFIG` environment variable. If not set, the server starts with built-in defaults. See the README for configuration guidance.
 
 ### 5.1 Schema
 
@@ -133,7 +133,7 @@ A single JSON file controls all server behavior. The file path is set via the `M
 | Field              | Type     | Default     | Description                                                   |
 | ------------------ | -------- | ----------- | ------------------------------------------------------------- |
 | `workingDirectory` | string   | Process cwd | Absolute path used as `cwd` for all command execution.        |
-| `blacklist`        | string[] | See 6.1     | Command and cmdlet names that are blocked from execution.     |
+| `blacklist`        | string[] | See 6.1     | Command and cmdlet names blocked from execution. Fully operator-controlled. |
 | `timeoutSeconds`   | number   | 30          | Max execution time per command. Exceeded commands are killed. |
 | `audit.enabled`    | boolean  | true        | Log every command execution to stderr.                        |
 
@@ -144,9 +144,9 @@ All fields are optional. Omitted fields use defaults.
 
 ### 6.1 Command Blacklist
 
-The blacklist blocks commands that are categorically destructive, enable privilege escalation, or disrupt system state. Both PowerShell cmdlets and their common aliases are included to prevent bypass through either name.
+The blacklist blocks commands that are categorically destructive, enable privilege escalation, or disrupt system state. Both PowerShell cmdlets and their common aliases are included to prevent bypass through either name. The blacklist is fully operator-controlled via the config file — entries can be added or removed to match the environment.
 
-**Default blacklist:**
+**Recommended default blacklist:**
 
 
 | Category                | Cmdlets / Commands                                        | Rationale                                       |
@@ -159,17 +159,17 @@ The blacklist blocks commands that are categorically destructive, enable privile
 | Registry manipulation   | `reg`, `regedit`                                          | Direct Windows registry modification            |
 
 
-Blacklist matching checks the base command name against the list. Because the server executes through PowerShell, aliases like `rm` (which resolves to `Remove-Item`) are included explicitly — both the alias and the cmdlet name are listed.
-
-The blacklist is configurable via the config file. Operators can add or remove entries to match their environment.
+Blacklist matching checks the base command name of each pipe segment against the list. Because the server executes through PowerShell, aliases like `rm` (which resolves to `Remove-Item`) are included explicitly — both the alias and the cmdlet name are listed.
 
 ### 6.2 Security Layers
 
-1. **Blacklist** — Prevents dangerous commands from being proposed.
-2. **Working directory** — Sets the default execution context. Limits where operations start.
-3. **Execution timeout** — Kills commands that exceed the configured duration. Prevents hung processes.
-4. **Audit log** — Records every execution for forensic review.
-5. **MCP client approval** (external to this server) — The MCP client presents every tool call to the operator for approval before execution. This is the primary security gate.
+1. **MCP client approval** (external to this server) — The MCP client presents every tool call to the operator for approval before execution. This is the primary security gate.
+2. **Blacklist** — Prevents dangerous commands from executing. Configurable, can be disabled.
+3. **Working directory** — Sets the default execution context. Configurable.
+4. **Execution timeout** — Kills commands that exceed the configured duration. Configurable.
+5. **Audit log** — Records every execution for forensic review. Can be disabled.
+
+The server is designed to enable execution, not restrict it. Layers 2–5 are optional guardrails that assist the operator — they are not a substitute for operator approval.
 
 ### 6.3 What This Server Does Not Do
 
@@ -179,13 +179,13 @@ The server does not parse or validate file path arguments within commands. It do
 
 When enabled, every command execution writes a structured entry to stderr. The MCP specification permits stdio servers to use stderr for logging.
 
-**Format:**
+**Format (JSON lines — one JSON object per line):**
 
-```
-[2026-03-16T19:30:00.000Z] [ALLOWED] command="git status" cwd="C:\dev" exit=0 duration=245ms
-[2026-03-16T19:30:05.000Z] [BLOCKED] command="Remove-Item -Recurse -Force /" reason="blacklisted: Remove-Item"
-[2026-03-16T19:30:10.000Z] [ERROR] command="git push" cwd="C:\dev" exit=1 duration=3200ms
-[2026-03-16T19:30:15.000Z] [TIMEOUT] command="Get-ChildItem -Recurse C:\" cwd="C:\dev" timeout=30s
+```json
+{"timestamp":"2026-03-16T19:30:00.000Z","status":"ALLOWED","command":"git status","cwd":"C:\\dev","exitCode":0,"durationMs":245}
+{"timestamp":"2026-03-16T19:30:05.000Z","status":"BLOCKED","command":"Remove-Item -Recurse -Force /","reason":"blacklisted: Remove-Item"}
+{"timestamp":"2026-03-16T19:30:10.000Z","status":"ERROR","command":"git push","cwd":"C:\\dev","exitCode":1,"durationMs":3200}
+{"timestamp":"2026-03-16T19:30:15.000Z","status":"TIMEOUT","command":"Get-ChildItem -Recurse C:\\","cwd":"C:\\dev","timeoutMs":30000}
 ```
 
 ## 8. Server Initialization
@@ -195,7 +195,7 @@ When enabled, every command execution writes a structured entry to stderr. The M
 The server returns an `instructions` field in its initialization response. This is read by the LLM at connection time before any tools are discovered or called. It tells the LLM exactly what environment it's working in.
 
 ```
-"instructions": "This server executes commands through PowerShell on Windows. Use PowerShell syntax for all commands. Send one command per call — do not chain commands with ; or && or ||. Pipes (|) are allowed. Common aliases work natively: dir, cat, ls, cp, mv, echo, cd, mkdir, type. Use Get-Content to read files, Set-Content to write files, and standard git/gh CLI commands for version control."
+"instructions": "This server executes commands through PowerShell on Windows. Use PowerShell syntax for all commands. Send one command per call — do not chain commands with ; or && or ||. Pipes (|) are allowed."
 ```
 
 ### 8.2 Capabilities
@@ -272,4 +272,5 @@ The `cmd /c` wrapper is required for Claude Desktop to launch npx-based MCP serv
 - Auto-configuration CLI
 - Telemetry or analytics
 - Cross-platform support (Linux/macOS) — this version targets Windows only
+- Long-term solution — this is a short-term tool for Claude Desktop on Windows; broader cross-platform or future-proof features are deliberately out of scope
 
