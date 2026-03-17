@@ -35,7 +35,6 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.27.1",
-    "@rollup/rollup-win32-x64-msvc": "^4.59.0",
     "execa": "^9.6.1"
   },
   "devDependencies": {
