@@ -1,3 +1,6 @@
+import fs from 'node:fs';
+import type { AuditConfig } from './config.js';
+
 export interface AuditEntry {
   timestamp: string;
   status: 'ALLOWED' | 'BLOCKED' | 'ERROR' | 'TIMEOUT';
@@ -9,12 +12,22 @@ export interface AuditEntry {
   reason?: string;
 }
 
-export function logAudit(entry: AuditEntry, enabled: boolean): void {
-  if (!enabled) return;
+export function logAudit(entry: AuditEntry, audit: AuditConfig): void {
+  if (!audit.enabled) return;
+
+  const line = JSON.stringify(entry) + '\n';
 
   try {
-    process.stderr.write(JSON.stringify(entry) + '\n');
+    process.stderr.write(line);
   } catch {
     // Never crash the server over a log write failure
+  }
+
+  if (audit.file) {
+    try {
+      fs.appendFileSync(audit.file, line);
+    } catch {
+      // Never crash the server over a log write failure
+    }
   }
 }

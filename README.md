@@ -1,6 +1,8 @@
 # mcp-bulkhead
 
-An MCP server that gives AI assistants controlled PowerShell command execution on Windows. One tool (`run_command`), configurable security guardrails, audit logging.
+⚠️ **WARNING: Do not run this on anything you care about. Development testing only.** ⚠️
+
+An MCP server that gives Claude Desktop the ability to run PowerShell commands on your local Windows machine. It includes a configurable command blacklist — a simple safety you can adjust or removed (if you like running with knives).
 
 ## Quick Start (Claude Desktop)
 
@@ -49,7 +51,8 @@ Create a JSON config file and point `MCP_BULKHEAD_CONFIG` to it:
 | `workingDirectory` | string | process cwd | Absolute path used as cwd for execution |
 | `blacklist` | string[] | see above | Commands blocked from execution |
 | `timeoutSeconds` | number | 30 | Max seconds per command before kill |
-| `audit.enabled` | boolean | true | Log every command to stderr as JSON lines |
+| `audit.enabled` | boolean | true | Log every command execution as JSON lines |
+| `audit.file` | string | `bulkhead.log` next to config file | File path to append audit logs to. Set to `""` to disable file logging. |
 
 All fields are optional. Omitted fields use defaults. The blacklist is fully yours to control — add, remove, or empty it.
 
@@ -64,15 +67,12 @@ Get-Process; Stop-Service foo        # blocked — chain operator
 Get-Process | Remove-Item            # blocked — Remove-Item in second segment
 ```
 
-## Security
+## Features (configurable in JSON)
 
-1. **MCP client approval** — the operator approves every tool call. This is the primary gate.
-2. **Blacklist** — blocks dangerous commands. Configurable, can be emptied.
-3. **Working directory** — sets execution context. Configurable.
-4. **Timeout** — kills long-running commands. Configurable.
-5. **Audit log** — JSON lines to stderr. Can be disabled.
-
-The server enables execution. These guardrails assist — they don't replace operator judgment.
+1. **Blacklist** — blocks dangerous commands. Can be emptied.
+2. **Working directory** — sets the default execution context. Does not restrict access to other paths.
+3. **Timeout** — kills long-running commands.
+4. **Audit log** — JSON lines to stderr and/or a file. Can be disabled.
 
 ## Development
 

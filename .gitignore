@@ -3,3 +3,5 @@ build/
 *.tsbuildinfo
 .env
 stderr.log
+CLAUDE.md
+AGENTS.md

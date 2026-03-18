@@ -122,7 +122,8 @@ A single JSON file controls all server behavior. The config file is the single s
   ],
   "timeoutSeconds": 30,
   "audit": {
-    "enabled": true
+    "enabled": true,
+    "file": "C:\\logs\\bulkhead.log"
   }
 }
 ```
@@ -136,6 +137,7 @@ A single JSON file controls all server behavior. The config file is the single s
 | `blacklist`        | string[] | See 6.1     | Command and cmdlet names blocked from execution. Fully operator-controlled. |
 | `timeoutSeconds`   | number   | 30          | Max execution time per command. Exceeded commands are killed. |
 | `audit.enabled`    | boolean  | true        | Log every command execution to stderr.                        |
+| `audit.file`       | string   | `bulkhead.log` next to config file | File path to append audit logs to. Set to `""` to disable.    |
 
 
 All fields are optional. Omitted fields use defaults.
@@ -177,7 +179,7 @@ The server does not parse or validate file path arguments within commands. It do
 
 ## 7. Audit Logging
 
-When enabled, every command execution writes a structured entry to stderr. The MCP specification permits stdio servers to use stderr for logging.
+When enabled, every command execution writes a structured JSON line to stderr (captured by the MCP client) and, if `audit.file` is configured, appends the same line to the specified file for direct operator access.
 
 **Format (JSON lines — one JSON object per line):**
 

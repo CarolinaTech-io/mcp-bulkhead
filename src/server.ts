@@ -74,7 +74,7 @@ export function createServer(config: ResolvedConfig, shell: string): Server {
           command,
           reason: validation.reason!,
         },
-        config.audit.enabled,
+        config.audit,
       );
 
       return {
@@ -97,7 +97,7 @@ export function createServer(config: ResolvedConfig, shell: string): Server {
           cwd: config.workingDirectory,
           timeoutMs,
         },
-        config.audit.enabled,
+        config.audit,
       );
 
       return {
@@ -117,7 +117,7 @@ export function createServer(config: ResolvedConfig, shell: string): Server {
           exitCode: result.exitCode,
           durationMs: result.durationMs,
         },
-        config.audit.enabled,
+        config.audit,
       );
 
       const errorText = result.stderr || result.stdout || `Command failed with exit code ${result.exitCode}`;
@@ -137,7 +137,7 @@ export function createServer(config: ResolvedConfig, shell: string): Server {
         exitCode: 0,
         durationMs: result.durationMs,
       },
-      config.audit.enabled,
+      config.audit,
     );
 
     return {
