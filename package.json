@@ -1,6 +1,6 @@
 {
   "name": "mcp-bulkhead",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "MCP server for secure PowerShell command execution on Windows",
   "type": "module",
   "main": "./build/index.js",
