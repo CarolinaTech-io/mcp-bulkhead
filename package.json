@@ -8,8 +8,7 @@
     "mcp-bulkhead": "build/index.js"
   },
   "files": [
-    "build/",
-    "config.json"
+    "build/"
   ],
   "scripts": {
     "build": "tsc",

@@ -3,6 +3,7 @@ import path from 'node:path';
 
 export interface AuditConfig {
   enabled: boolean;
+  file?: string;
 }
 
 export interface BulkheadConfig {
@@ -57,6 +58,8 @@ export function loadConfig(): ResolvedConfig {
   const blacklist = raw.blacklist ?? DEFAULT_CONFIG.blacklist;
   const timeoutSeconds = raw.timeoutSeconds ?? DEFAULT_CONFIG.timeoutSeconds;
   const auditEnabled = raw.audit?.enabled ?? DEFAULT_CONFIG.audit.enabled;
+  const defaultAuditFile = configPath ? path.join(path.dirname(configPath), 'bulkhead.log') : undefined;
+  const auditFile = raw.audit?.file ?? defaultAuditFile;
 
   // Validate workingDirectory
   if (!path.isAbsolute(workingDirectory)) {
@@ -86,13 +89,18 @@ export function loadConfig(): ResolvedConfig {
     throw new Error(`audit.enabled must be a boolean, got: ${typeof auditEnabled}`);
   }
 
+  // Validate audit.file
+  if (auditFile !== undefined && typeof auditFile !== 'string') {
+    throw new Error(`audit.file must be a string, got: ${typeof auditFile}`);
+  }
+
   const blacklistSet = new Set(blacklist.map(s => s.toLowerCase()));
 
   return {
     workingDirectory,
     blacklist,
     timeoutSeconds,
-    audit: { enabled: auditEnabled },
+    audit: { enabled: auditEnabled, file: auditFile },
     blacklistSet,
   };
 }

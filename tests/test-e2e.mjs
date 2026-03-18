@@ -9,7 +9,7 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 const transport = new StdioClientTransport({
   command: 'node',
   args: ['build/index.js'],
-  env: { ...process.env, MCP_BULKHEAD_CONFIG: 'config.json' },
+  env: { ...process.env, MCP_BULKHEAD_CONFIG: 'tests/config.json' },
   stderr: 'pipe',
 });
 
